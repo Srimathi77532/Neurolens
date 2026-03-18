@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NeuroLens — Brain Disorder Diagnosis</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #020508;
+  --bg2:      #050d14;
+  --surface:  #081523;
+  --surface2: #0c1e30;
+  --border:   #112235;
+  --border2:  #183348;
+  --teal:     #14b8a6;
+  --teal2:    #0d9488;
+  --blue:     #38bdf8;
+  --green:    #22c55e;
+  --red:      #f87171;
+  --amber:    #fbbf24;
+  --text:     #dde8f5;
+  --text2:    #7a9bb8;
+  --text3:    #334d63;
+  --white:    #ffffff;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;cursor:default}
+
+/* ── BACKGROUND ── */
+.scene{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+
+.scene-mesh{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 15%, rgba(20,184,166,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 85% 85%, rgba(56,189,248,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(34,197,94,0.02) 0%, transparent 60%);
+}
+
+.scene-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(20,184,166,0.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(20,184,166,0.035) 1px,transparent 1px);
+  background-size:50px 50px;
+}
+
+.scene-scan{
+  position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,rgba(20,184,166,0.4) 30%,rgba(56,189,248,0.4) 70%,transparent 100%);
+  animation:scan 8s linear infinite;
+  top:0;
+}
+@keyframes scan{0%{top:0;opacity:0}3%{opacity:1}97%{opacity:1}100%{top:100vh;opacity:0}}
+
+/* floating particles */
+.particle{
+  position:absolute;border-radius:50%;
+  animation:float-particle linear infinite;
+  opacity:0;
+}
+@keyframes float-particle{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{transform:translateY(-10vh) scale(1);opacity:0}
+}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 52px;
+  background:rgba(2,5,8,0.85);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+}
+
+.logo{display:flex;align-items:center;gap:12px}
+
+.logo-mark{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--teal),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;
+  box-shadow:0 0 20px rgba(20,184,166,0.35);
+}
+
+.logo-name{
+  font-family:'Fraunces',serif;
+  font-size:1.25rem;font-weight:700;
+  color:var(--white);letter-spacing:-0.02em;
+}
+.logo-name em{font-style:normal;color:var(--teal)}
+
+.nav-right{display:flex;align-items:center;gap:10px}
+
+.pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:20px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;
+}
+.pill-model{background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.25);color:var(--teal)}
+.pill-live{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);color:var(--green)}
+
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── HERO ── */
+.hero{
+  display:grid;grid-template-columns:1fr 420px;
+  gap:48px;align-items:center;
+  max-width:1200px;margin:0 auto;
+  padding:80px 52px 64px;
+  position:relative;z-index:1;
+}
+
+.hero-kicker{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(20,184,166,0.08);
+  border:1px solid rgba(20,184,166,0.2);
+  border-radius:20px;padding:6px 14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.62rem;color:var(--teal);
+  letter-spacing:0.12em;text-transform:uppercase;
+  margin-bottom:22px;
+}
+
+.hero-h1{
+  font-family:'Fraunces',serif;
+  font-size:clamp(2.4rem,4.5vw,3.8rem);
+  font-weight:700;line-height:1.05;
+  color:var(--white);letter-spacing:-0.03em;
+  margin-bottom:20px;
+}
+
+.hero-h1 .grad{
+  background:linear-gradient(120deg,var(--teal),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+.hero-p{
+  font-size:1rem;color:var(--text2);line-height:1.8;
+  max-width:480px;margin-bottom:40px;font-weight:300;
+}
+
+.hero-chips{display:flex;gap:10px;flex-wrap:wrap}
+
+.chip{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;padding:8px 14px;
+  font-size:0.72rem;color:var(--text2);
+  display:flex;align-items:center;gap:6px;
+}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--teal)}
+
+/* Brain orb */
+.orb-wrap{display:flex;align-items:center;justify-content:center;position:relative}
+
+.orb{
+  width:300px;height:300px;
+  border-radius:50%;position:relative;
+  background:radial-gradient(circle at 38% 38%,rgba(20,184,166,0.18) 0%,rgba(56,189,248,0.08) 40%,transparent 70%);
+  border:1px solid rgba(20,184,166,0.15);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 60px rgba(20,184,166,0.1),inset 0 0 60px rgba(20,184,166,0.05);
+  animation:orb-breathe 4s ease-in-out infinite;
+}
+
+@keyframes orb-breathe{
+  0%,100%{box-shadow:0 0 60px rgba(20,184,166,0.1),inset 0 0 60px rgba(20,184,166,0.05)}
+  50%{box-shadow:0 0 100px rgba(20,184,166,0.2),inset 0 0 80px rgba(20,184,166,0.08)}
+}
+
+.orb-inner{font-size:80px;animation:orb-float 5s ease-in-out infinite}
+@keyframes orb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+.orb-ring{
+  position:absolute;border-radius:50%;border:1px dashed;
+  animation:spin linear infinite;
+}
+.orb-ring:nth-child(1){inset:-20px;border-color:rgba(20,184,166,0.15);animation-duration:30s}
+.orb-ring:nth-child(2){inset:-44px;border-color:rgba(56,189,248,0.1);animation-duration:20s;animation-direction:reverse}
+.orb-ring:nth-child(3){inset:-68px;border-color:rgba(34,197,94,0.07);animation-duration:40s}
+
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.orb-tag{
+  position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace;font-size:0.6rem;
+  color:var(--teal);letter-spacing:0.14em;text-transform:uppercase;
+  white-space:nowrap;background:var(--bg);
+  border:1px solid var(--border2);border-radius:12px;padding:3px 12px;
+}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:0 52px}
+
+/* ── APP SECTION ── */
+.app{max-width:1200px;margin:0 auto;padding:60px 52px 80px;position:relative;z-index:1}
+
+.sec-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.6rem;color:var(--teal);
+  letter-spacing:0.16em;text-transform:uppercase;margin-bottom:6px;
+}
+.sec-title{
+  font-family:'Fraunces',serif;
+  font-size:1.7rem;font-weight:700;
+  color:var(--white);margin-bottom:28px;letter-spacing:-0.02em;
+}
+
+/* ── UPLOAD ── */
+.upload-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+
+.dropzone{
+  background:var(--surface);border:1.5px dashed var(--border2);
+  border-radius:18px;min-height:300px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;cursor:pointer;
+  transition:all 0.3s ease;position:relative;overflow:hidden;
+}
+.dropzone::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center,rgba(20,184,166,0.06) 0%,transparent 65%);
+  opacity:0;transition:opacity 0.3s;
+}
+.dropzone:hover,.dropzone.over{
+  border-color:var(--teal);
+  box-shadow:0 0 0 1px rgba(20,184,166,0.2),0 24px 64px rgba(20,184,166,0.1);
+}
+.dropzone:hover::before,.dropzone.over::before{opacity:1}
+
+.dz-icon{
+  width:76px;height:76px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(20,184,166,0.12),rgba(56,189,248,0.08));
+  border:1px solid rgba(20,184,166,0.2);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.3s;position:relative;z-index:1;
+}
+.dropzone:hover .dz-icon{transform:translateY(-5px)}
+.dz-icon svg{width:32px;height:32px;stroke:var(--teal);fill:none;stroke-width:1.5}
+
+.dz-title{font-size:0.95rem;font-weight:600;color:var(--white);position:relative;z-index:1}
+.dz-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.63rem;color:var(--text3);text-align:center;line-height:1.9;
+  position:relative;z-index:1;
+}
+
+.dz-tags{display:flex;gap:6px;position:relative;z-index:1}
+.dz-tag{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:3px 9px;
+  font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);
+}
+
+.dz-btn{
+  background:linear-gradient(135deg,var(--teal2),var(--teal));
+  border:none;color:var(--white);
+  font-family:'Outfit',sans-serif;font-size:0.8rem;font-weight:600;
+  padding:10px 26px;border-radius:9px;cursor:pointer;
+  transition:all 0.2s;position:relative;z-index:1;
+}
+.dz-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,184,166,0.4)}
+
+#fileInput{display:none}
+
+/* Preview */
+.preview-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;min-height:300px;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+
+.preview-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;border-bottom:1px solid var(--border);
+  background:var(--surface2);
+}
+.preview-bar-left{display:flex;align-items:center;gap:8px}
+.preview-indicator{
+  width:7px;height:7px;border-radius:50%;background:var(--text3);
+  transition:all 0.3s;
+}
+.preview-indicator.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.preview-bar-label{font-size:0.72rem;font-weight:500;color:var(--text2)}
+.preview-bar-tag{
+  font-family:'JetBrains Mono',monospace;font-size:0.58rem;
+  color:var(--text3);background:var(--surface);
+  border:1px solid var(--border);border-radius:5px;padding:2px 8px;
+}
+
+.preview-body{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:24px;position:relative;
+}
+.preview-body img{
+  max-width:100%;max-height:230px;object-fit:contain;
+  border-radius:8px;filter:brightness(1.05) contrast(1.06);
+}
+.preview-placeholder{text-align:center}
+.ph-icon{font-size:36px;opacity:0.2;margin-bottom:10px}
+.ph-text{
+  font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+  color:var(--text3);line-height:1.8;
+}
+
+/* CT corners */
+.ct-corners{position:absolute;inset:14px;pointer-events:none}
+.ct-corner{position:absolute;width:14px;height:14px;border-color:var(--teal);border-style:solid;opacity:0;transition:opacity 0.3s}
+.has-img .ct-corner{opacity:0.35}
+.ct-corner.tl{top:0;left:0;border-width:2px 0 0 2px;border-radius:2px 0 0 0}
+.ct-corner.tr{top:0;right:0;border-width:2px 2px 0 0;border-radius:0 2px 0 0}
+.ct-corner.bl{bottom:0;left:0;border-width:0 0 2px 2px;border-radius:0 0 0 2px}
+.ct-corner.br{bottom:0;right:0;border-width:0 2px 2px 0;border-radius:0 0 2px 0}
+
+/* ── ACTION BAR ── */
+.action-bar{
+  display:flex;align-items:center;gap:16px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:16px 22px;margin-bottom:36px;
+}
+
+.run-btn{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#0d766e,var(--teal),var(--blue));
+  background-size:200%;animation:btn-grad 3s ease infinite;
+  border:none;color:var(--white);
+  font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:700;
+  padding:13px 34px;border-radius:10px;cursor:pointer;
+  transition:all 0.2s;white-space:nowrap;flex-shrink:0;
+}
+@keyframes btn-grad{0%{background-position:0%}50%{background-position:100%}100%{background-position:0%}}
+.run-btn:disabled{opacity:0.3;cursor:not-allowed;animation:none}
+.run-btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(20,184,166,0.45)}
+
+.btn-spin{display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
+.run-btn.loading .btn-spin{display:block}
+.run-btn.loading .btn-label{display:none}
+.run-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+
+.action-info{flex:1}
+.action-title{font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px}
+.action-sub{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3)}
+
+/* ── ERROR ── */
+#errBanner{
+  display:none;
+  background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.25);
+  border-radius:10px;padding:13px 18px;margin-bottom:20px;
+  font-size:0.78rem;color:#fca5a5;gap:10px;align-items:flex-start;
+}
+
+/* ── RESULTS ── */
+#results{display:none;animation:rise 0.5s ease forwards}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+/* Diagnosis card */
+.dx-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;padding:30px;margin-bottom:18px;
+  position:relative;overflow:hidden;
+}
+.dx-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--blue));
+}
+.dx-card.normal::after{background:linear-gradient(90deg,var(--green),#4ade80)}
+.dx-card.critical::after{background:linear-gradient(90deg,var(--red),var(--amber))}
+.dx-card.moderate::after{background:linear-gradient(90deg,var(--amber),#fb923c)}
+
+.dx-inner{display:flex;align-items:flex-start;gap:22px}
+
+.dx-emoji{
+  width:68px;height:68px;border-radius:16px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:32px;
+  background:rgba(20,184,166,0.08);border:1px solid rgba(20,184,166,0.18);
+}
+.normal .dx-emoji{background:rgba(34,197,94,0.08);border-color:rgba(34,197,94,0.18)}
+.critical .dx-emoji{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.18)}
+.moderate .dx-emoji{background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.18)}
+
+.dx-body{flex:1}
+.dx-micro{
+  font-family:'JetBrains Mono',monospace;font-size:0.58rem;
+  color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;
+}
+.dx-name{
+  font-family:'Fraunces',serif;
+  font-size:clamp(1.6rem,3vw,2.4rem);
+  font-weight:700;color:var(--white);line-height:1.1;margin-bottom:10px;
+}
+.dx-desc{font-size:0.82rem;color:var(--text2);line-height:1.75;margin-bottom:18px;font-weight:300}
+
+.dx-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+.conf-box{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:10px;padding:9px 16px;
+  display:flex;align-items:baseline;gap:6px;
+}
+.conf-lbl{font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em}
+.conf-val{
+  font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;color:var(--teal);
+}
+
+.sev-badge{
+  border-radius:8px;padding:8px 14px;
+  font-size:0.72rem;font-weight:600;
+}
+.sev-normal{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.22)}
+.sev-critical{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.22)}
+.sev-moderate{background:rgba(251,191,36,0.1);color:var(--amber);border:1px solid rgba(251,191,36,0.22)}
+
+/* Prob panel */
+.prob-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;padding:26px;
+}
+.prob-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;
+}
+.prob-title{font-size:0.85rem;font-weight:600;color:var(--text)}
+.prob-count{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3)}
+
+.prob-row{
+  display:grid;grid-template-columns:155px 1fr 56px;
+  align-items:center;gap:14px;margin-bottom:13px;
+}
+.prob-name{font-size:0.76rem;font-weight:500;color:var(--text2)}
+.prob-name.top{color:var(--white);font-weight:700}
+.prob-track{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.prob-bar{height:100%;border-radius:4px;width:0;transition:width 1s cubic-bezier(.34,1.56,.64,1);background:rgba(20,184,166,0.4)}
+.prob-bar.top{background:linear-gradient(90deg,var(--teal2),var(--teal));box-shadow:0 0 8px rgba(20,184,166,0.5)}
+.prob-pct{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text3);text-align:right}
+.prob-pct.top{color:var(--teal);font-weight:500}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);
+  max-width:1200px;margin:0 auto;
+  padding:30px 52px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+}
+.footer-warn{font-size:0.7rem;color:var(--text3);line-height:1.75;max-width:580px}
+.footer-warn strong{color:var(--amber)}
+.footer-brand{
+  font-family:'Fraunces',serif;font-size:1rem;font-weight:700;
+  color:var(--text3);white-space:nowrap;text-align:right;line-height:1.6;
+}
+.footer-brand span{color:var(--teal)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:800px){
+  nav{padding:14px 20px}
+  .hero{grid-template-columns:1fr;padding:40px 20px;gap:32px}
+  .orb-wrap{display:none}
+  .app{padding:40px 20px 60px}
+  .upload-row{grid-template-columns:1fr}
+  .prob-row{grid-template-columns:120px 1fr 48px}
+  footer{flex-direction:column;padding:24px 20px;align-items:flex-start}
+  .footer-brand{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<!-- Background scene -->
+<div class="scene">
+  <div class="scene-mesh"></div>
+  <div class="scene-grid"></div>
+  <div class="scene-scan"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">🔬</div>
+    <div class="logo-name">Neuro<em>Lens</em></div>
+  </div>
+  <div class="nav-right">
+    <div class="pill pill-model">Brain Disorder AI</div>
+    <div class="pill pill-live"><div class="live-dot"></div>Live</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="position:relative;z-index:1">
+  <div>
+    <div class="hero-kicker">◈ Neuroimaging Intelligence</div>
+    <h1 class="hero-h1">AI-Powered<br/><span class="grad">Brain Disorder</span><br/>Diagnosis</h1>
+    <p class="hero-p">Upload a CT scan and receive instant, AI-driven analysis across 6 neurological conditions — accurate, fast, and built for clinical research.</p>
+    <div class="hero-chips">
+      <div class="chip"><div class="chip-dot"></div>6 Disorder Classes</div>
+      <div class="chip"><div class="chip-dot"></div>Instant Analysis</div>
+      <div class="chip"><div class="chip-dot"></div>Deep Learning Model</div>
+    </div>
+  </div>
+  <div class="orb-wrap">
+    <div class="orb">
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-inner">🧠</div>
+      <div class="orb-tag">Neural Analysis Engine</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- APP -->
+<section class="app">
+  <div class="sec-eyebrow">Step 01 — Upload Scan</div>
+  <h2 class="sec-title">Upload CT Image</h2>
+
+  <!-- Error -->
+  <div id="errBanner">
+    <span>⚠</span>
+    <span id="errText"></span>
+  </div>
+
+  <!-- Upload + Preview -->
+  <div class="upload-row">
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="dz-title">Drop CT Scan Here</div>
+      <div class="dz-sub">Drag & drop or click to browse<br/>Axial · Coronal · Sagittal views accepted</div>
+      <div class="dz-tags">
+        <span class="dz-tag">PNG</span>
+        <span class="dz-tag">JPG</span>
+        <span class="dz-tag">BMP</span>
+        <span class="dz-tag">TIFF</span>
+      </div>
+      <button class="dz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">Browse File</button>
+      <input type="file" id="fileInput" accept="image/*"/>
+    </div>
+
+    <div class="preview-card">
+      <div class="preview-bar">
+        <div class="preview-bar-left">
+          <div class="preview-indicator" id="previewDot"></div>
+          <span class="preview-bar-label">Scan Preview</span>
+        </div>
+        <span class="preview-bar-tag" id="previewTag">NO FILE</span>
+      </div>
+      <div class="preview-body" id="previewBody">
+        <div class="ct-corners">
+          <div class="ct-corner tl"></div><div class="ct-corner tr"></div>
+          <div class="ct-corner bl"></div><div class="ct-corner br"></div>
+        </div>
+        <div class="preview-placeholder">
+          <div class="ph-icon">🫥</div>
+          <div class="ph-text">No scan loaded<br/>Upload a CT image to preview</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <button class="run-btn" id="runBtn" disabled onclick="analyze()">
+      <div class="btn-spin"></div>
+      <span class="btn-label">
+        <svg viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:5px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Run Diagnosis
+      </span>
+    </button>
+    <div class="action-info">
+      <div class="action-title" id="actionTitle">Upload a CT scan to begin</div>
+      <div class="action-sub" id="actionSub">Model ready · 6-class brain disorder classifier</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="sec-eyebrow" style="margin-bottom:6px">Step 02 — Results</div>
+    <h2 class="sec-title">Diagnosis Report</h2>
+
+    <div class="dx-card" id="dxCard">
+      <div class="dx-inner">
+        <div class="dx-emoji" id="dxEmoji">🔬</div>
+        <div class="dx-body">
+          <div class="dx-micro">Primary Diagnosis · NeuroLens AI</div>
+          <div class="dx-name" id="dxName">—</div>
+          <div class="dx-desc" id="dxDesc">—</div>
+          <div class="dx-row">
+            <div class="conf-box">
+              <span class="conf-lbl">Confidence</span>
+              <span class="conf-val" id="dxConf">—</span>
+            </div>
+            <div class="sev-badge" id="dxSev">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prob-card">
+      <div class="prob-header">
+        <div class="prob-title">Class Probability Distribution</div>
+        <div class="prob-count">6 neurological classes</div>
+      </div>
+      <div id="probBars"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="position:relative;z-index:1">
+  <div class="footer-warn">
+    <strong>⚠ Medical Disclaimer:</strong> NeuroLens is intended for research and educational purposes only.
+    It is not a certified medical device and must not replace professional clinical diagnosis.
+    Always consult a qualified radiologist or neurologist for medical decisions.
+  </div>
+  <div class="footer-brand">Neuro<span>Lens</span><br/>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);font-weight:400">Brain Disorder AI · v2.0</span>
+  </div>
+</footer>
+
+<script>
+// ── Floating particles ──
+(function(){
+  const scene = document.querySelector('.scene');
+  const colors = ['rgba(20,184,166,0.6)','rgba(56,189,248,0.5)','rgba(34,197,94,0.4)'];
+  for(let i=0;i<18;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*3+1;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*20+15}s;
+      animation-delay:${Math.random()*20}s;
+    `;
+    scene.appendChild(p);
+  }
+})();
+
+// ── App logic ──
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const runBtn = document.getElementById('runBtn');
+const previewBody = document.getElementById('previewBody');
+const previewDot = document.getElementById('previewDot');
+const previewTag = document.getElementById('previewTag');
+const actionTitle = document.getElementById('actionTitle');
+const actionSub = document.getElementById('actionSub');
+const errBanner = document.getElementById('errBanner');
+
+let selectedFile = null;
+
+const INFO = {
+  aneurysm:    {icon:'🫀', desc:'Abnormal bulge detected in a cerebral blood vessel. Requires urgent neurosurgical evaluation and monitoring.', sev:'critical', sevTxt:'🔴 Urgent — Seek Immediate Care'},
+  edema:       {icon:'💧', desc:'Abnormal fluid accumulation in brain tissue detected. May indicate trauma, infection, or an underlying mass lesion.', sev:'moderate', sevTxt:'🟡 Moderate — Follow-Up Required'},
+  haemorrhage: {icon:'🩸', desc:'Intracranial bleeding detected. This is a medical emergency — immediate neurological assessment is required.', sev:'critical', sevTxt:'🔴 Emergency — Immediate Attention'},
+  ischemia:    {icon:'⚡', desc:'Reduced cerebral blood flow detected. High stroke risk — urgent neurological intervention is strongly advised.', sev:'critical', sevTxt:'🔴 Urgent — Stroke Risk'},
+  normal:      {icon:'✅', desc:'No significant neurological abnormalities detected in this CT image. Routine follow-up is recommended.', sev:'normal', sevTxt:'🟢 Normal — No Immediate Concern'},
+  tumor:       {icon:'🧠', desc:'Abnormal mass or lesion detected in brain tissue. Further MRI imaging and specialist consultation is recommended.', sev:'moderate', sevTxt:'🟡 Refer — Specialist Consultation'}
+};
+
+dropzone.addEventListener('dragover', e=>{e.preventDefault();dropzone.classList.add('over')});
+dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault();dropzone.classList.remove('over');
+  if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', ()=>{ if(fileInput.files[0]) loadFile(fileInput.files[0]) });
+
+function loadFile(file){
+  selectedFile = file;
+  runBtn.disabled = false;
+  previewDot.classList.add('on');
+  previewTag.textContent = file.name.split('.').pop().toUpperCase();
+  actionTitle.textContent = `Ready: ${file.name}`;
+  actionSub.textContent = `${(file.size/1024).toFixed(1)} KB · ${file.type||'image'}`;
+  errBanner.style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = e=>{
+    previewBody.innerHTML = `
+      <div class="ct-corners">
+        <div class="ct-corner tl"></div><div class="ct-corner tr"></div>
+        <div class="ct-corner bl"></div><div class="ct-corner br"></div>
+      </div>
+      <img src="${e.target.result}" alt="CT Scan"/>
+    `;
+    previewBody.classList.add('has-img');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyze(){
+  if(!selectedFile) return;
+  runBtn.classList.add('loading');
+  runBtn.disabled = true;
+  actionTitle.textContent = 'Analyzing scan…';
+  actionSub.textContent = 'Running inference through deep learning model';
+  errBanner.style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  try{
+    const res = await fetch('/predict',{method:'POST',body:fd});
+    const data = await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||'Server error');
+    renderResults(data);
+    actionTitle.textContent = 'Diagnosis complete ✓';
+    actionSub.textContent = `${data.diagnosis} · ${data.confidence} confidence`;
+  }catch(err){
+    errBanner.style.display = 'flex';
+    document.getElementById('errText').textContent =
+      `${err.message} — Make sure app.py is running on port 5000.`;
+    actionTitle.textContent = 'Analysis failed';
+    actionSub.textContent = 'Check that the Flask server is running';
+  }finally{
+    runBtn.classList.remove('loading');
+    runBtn.disabled = false;
+  }
+}
+
+function renderResults(data){
+  const key = data.diagnosis.toLowerCase();
+  const info = INFO[key]||{icon:'🔬',desc:'Analysis complete.',sev:'moderate',sevTxt:'See Specialist'};
+
+  const card = document.getElementById('dxCard');
+  card.className = `dx-card ${info.sev}`;
+  document.getElementById('dxEmoji').textContent = info.icon;
+  document.getElementById('dxName').textContent = data.diagnosis;
+  document.getElementById('dxDesc').textContent = info.desc;
+  document.getElementById('dxConf').textContent = data.confidence;
+
+  const sev = document.getElementById('dxSev');
+  sev.textContent = info.sevTxt;
+  sev.className = `sev-badge sev-${info.sev}`;
+
+  const bars = document.getElementById('probBars');
+  bars.innerHTML = '';
+  data.all_predictions.forEach((p,i)=>{
+    const pct = (p.probability*100).toFixed(1);
+    const top = i===0;
+    const row = document.createElement('div');
+    row.className = 'prob-row';
+    row.innerHTML = `
+      <div class="prob-name${top?' top':''}">${p.class}</div>
+      <div class="prob-track"><div class="prob-bar${top?' top':''}" data-w="${pct}"></div></div>
+      <div class="prob-pct${top?' top':''}">${pct}%</div>
+    `;
+    bars.appendChild(row);
+  });
+
+  document.getElementById('results').style.display = 'block';
+  setTimeout(()=>{
+    document.querySelectorAll('.prob-bar').forEach(b=>b.style.width=b.dataset.w+'%');
+  }, 80);
+}
+</script>
+</body>
+</html>
